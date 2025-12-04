@@ -31,6 +31,7 @@ class SciCat:
     description: str = field(default=None)
     owner: str = field(default=None)
     ownerEmail: str = field(default=None)
+    isPublished: str = field(default=None)
     type: str = field(default=None)
     principleInvestigator: str = field(default=None)
     creationLocation: str = field(default=None)

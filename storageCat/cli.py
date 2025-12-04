@@ -41,9 +41,8 @@ def build(output):
     dataset_name = click.prompt("Dataset name", type=str)
     description = click.prompt("Description", type=str)
     owner = click.prompt("Owner", type=str)
-    owner_email = click.prompt("Owner email", type=str)
-    dataset_type = click.prompt("Type", type=str)
-    pi = click.prompt("Principal Investigator", type=str)
+    ip = click.prompt("This will be published (true/false)", type=str)
+    dataset_type = click.prompt("Dataset type (raw, derived)", type=str)
     creation_location = click.prompt("Creation location", type=str)
     owner_group = click.prompt("Owner group", type=str)
 
@@ -78,12 +77,11 @@ def build(output):
         datasetName=dataset_name,
         description=description,
         owner=owner,
-        ownerEmail=owner_email,
         type=dataset_type,
-        principleInvestigator=pi,
         creationLocation=creation_location,
         ownerGroup=owner_group,
         scientificMetadata=sci_metadata,
+        isPublished=ip,
         otherFields=other_fields if other_fields else None,
     )
 
@@ -101,6 +99,82 @@ def build(output):
     "-i",
     type=click.Path(exists=True),
     default="metadata.json",
+    help="Input JSON file to check (default: metadata.json)",
+)
+@click.option(
+    "--module",
+    "-m",
+    type=str,
+    default="datacatalog",
+    help="Module name to load (default: datacatalog)",
+)
+@click.option(
+    "--token",
+    type=str,
+    default=None,
+    help="SciCat Token. For PSI, found at https://discovery.psi.ch/user"
+)
+def check(input, module, token):
+    """Check metadata without submitting to the datacatalog."""
+    
+    if token is None:
+        token = click.prompt("SciCat Token", type=str)
+    
+    try:
+        click.echo(f"Loading module: {module}")
+        load_result = subprocess.run(
+            f"module load {module}",
+            shell=True,
+            executable="/bin/bash",
+            capture_output=True,
+            text=True,
+        )
+        
+        if load_result.returncode != 0:
+            click.echo(
+                click.style(f"Warning: module load returned non-zero exit code", fg="yellow")
+            )
+            if load_result.stderr:
+                click.echo(f"   {load_result.stderr.strip()}")
+        
+        click.echo(f"Checking metadata from: {input}")
+        check_cmd = f"module load {module} && datasetIngestor -token {token} {input}"
+        check_result = subprocess.run(
+            check_cmd, shell=True, executable="/bin/bash", capture_output=True, text=True
+        )
+        
+        click.echo(click.style("\n=== Check Results ===", fg="cyan", bold=True))
+        
+        if check_result.stdout:
+            click.echo(check_result.stdout)
+        
+        if check_result.stderr:
+            click.echo(click.style("Errors/Warnings:", fg="yellow"))
+            click.echo(check_result.stderr)
+        
+        if check_result.returncode == 0:
+            cat = """
+                  |\      _,,,---,,_
+           ZZZzz /`.-'`'    -.  ;-;;,_
+                |,4-  ) )-,_. ,\ (  `'-'
+                '---''(_/--'  `-'\_)
+            """
+            click.echo(click.style(cat, fg="cyan"))
+            click.echo(click.style(f"\nCommand completed (exit code: 0). Now run `storageCat submit` to begin to archive", fg="green"))
+        else:
+            click.echo(click.style(f"\nCommand completed with exit code: {check_result.returncode}", fg="yellow"))
+            
+    except Exception as e:
+        click.echo(click.style(f"\nError during check: {str(e)}", fg="red", bold=True))
+        sys.exit(1)
+
+
+@cli.command()
+@click.option(
+    "--input",
+    "-i",
+    type=click.Path(exists=True),
+    default="metadata.json",
     help="Input JSON file to submit (default: metadata.json)",
 )
 @click.option(
@@ -110,8 +184,16 @@ def build(output):
     default="datacatalog",
     help="Module name to load (default: datacatalog)",
 )
-def submit(input, module):
+@click.option(
+    "--token",
+    type=str,
+    default=None,
+    help="SciCat Token. For PSI, found at https://discovery.psi.ch/user",
+)
+def submit(input, module, token=None):
     """Submit metadata to the datacatalog."""
+    if token is None:
+        token = click.prompt("SciCat Token", type=str)
     try:
         click.echo(f"Loading module: {module}")
         load_result = subprocess.run(
@@ -130,17 +212,20 @@ def submit(input, module):
                 click.echo(f"   {load_result.stderr.strip()}")
 
         click.echo(f"Ingesting metadata from: {input}")
-        ingest_cmd = f"module load {module} && datasetIngestor --ingest {input}"
+        ingest_cmd = f"module load {module} && datasetIngestor -token {token} --ingest {input}"
         ingest_result = subprocess.run(
             ingest_cmd, shell=True, executable="/bin/bash", capture_output=True, text=True
         )
 
         if ingest_result.returncode == 0:
             cat = """
-                  |\      _,,,---,,_
-           ZZZzz /,`.-'`'    -.  ;-;;,_
-                |,4-  ) )-,_. ,\ (  `'-'
-                '---''(_/--'  `-'\_)
+                        _ |\_
+                        \` ..\
+                   __,.-" =__Y=
+                 ."        )
+            _   /   ,    \/\_
+          ((____|    )_-\ \_-`
+          `-----'`-----` `--`
             """
             click.echo(click.style(cat, fg="cyan"))
             click.echo(click.style(f"\nSuccessfully submitted {input}!", fg="green", bold=True))
@@ -155,7 +240,6 @@ def submit(input, module):
     except Exception as e:
         click.echo(click.style(f"\nError during submission: {str(e)}", fg="red", bold=True))
         sys.exit(1)
-
 
 if __name__ == "__main__":
     cli()
