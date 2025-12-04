@@ -229,7 +229,7 @@ def submit(input, module, token=None):
         if ingest_result.returncode == 0:
             cat = """
                         _ |\_
-                        \` ..\
+                        \` ..|
                    __,.-" =__Y=
                  ."        )
             _   /   ,    \/\_
