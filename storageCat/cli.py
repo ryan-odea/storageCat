@@ -112,14 +112,14 @@ def build(output):
     "--token",
     type=str,
     default=None,
-    help="SciCat Token. For PSI, found at https://discovery.psi.ch/user"
+    help="SciCat Token. For PSI, found at https://discovery.psi.ch/user",
 )
 def check(input, module, token):
     """Check metadata without submitting to the datacatalog."""
-    
+
     if token is None:
         token = click.prompt("SciCat Token", type=str)
-    
+
     try:
         click.echo(f"Loading module: {module}")
         load_result = subprocess.run(
@@ -129,29 +129,29 @@ def check(input, module, token):
             capture_output=True,
             text=True,
         )
-        
+
         if load_result.returncode != 0:
             click.echo(
                 click.style(f"Warning: module load returned non-zero exit code", fg="yellow")
             )
             if load_result.stderr:
                 click.echo(f"   {load_result.stderr.strip()}")
-        
+
         click.echo(f"Checking metadata from: {input}")
         check_cmd = f"module load {module} && datasetIngestor -token {token} {input}"
         check_result = subprocess.run(
             check_cmd, shell=True, executable="/bin/bash", capture_output=True, text=True
         )
-        
+
         click.echo(click.style("\n=== Check Results ===", fg="cyan", bold=True))
-        
+
         if check_result.stdout:
             click.echo(check_result.stdout)
-        
+
         if check_result.stderr:
             click.echo(click.style("Errors/Warnings:", fg="yellow"))
             click.echo(check_result.stderr)
-        
+
         if check_result.returncode == 0:
             cat = """
                   |\      _,,,---,,_
@@ -160,10 +160,19 @@ def check(input, module, token):
                 '---''(_/--'  `-'\_)
             """
             click.echo(click.style(cat, fg="cyan"))
-            click.echo(click.style(f"\nCommand completed (exit code: 0). Now run `storageCat submit` to begin to archive", fg="green"))
+            click.echo(
+                click.style(
+                    f"\nCommand completed (exit code: 0). Now run `storageCat submit` to begin to archive",
+                    fg="green",
+                )
+            )
         else:
-            click.echo(click.style(f"\nCommand completed with exit code: {check_result.returncode}", fg="yellow"))
-            
+            click.echo(
+                click.style(
+                    f"\nCommand completed with exit code: {check_result.returncode}", fg="yellow"
+                )
+            )
+
     except Exception as e:
         click.echo(click.style(f"\nError during check: {str(e)}", fg="red", bold=True))
         sys.exit(1)
@@ -240,6 +249,7 @@ def submit(input, module, token=None):
     except Exception as e:
         click.echo(click.style(f"\nError during submission: {str(e)}", fg="red", bold=True))
         sys.exit(1)
+
 
 if __name__ == "__main__":
     cli()
