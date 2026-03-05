@@ -138,7 +138,7 @@ def check(input, module, token):
                 click.echo(f"   {load_result.stderr.strip()}")
 
         click.echo(f"Checking metadata from: {input}")
-        check_cmd = f"module load {module} && datasetIngestor -token {token} {input}"
+        check_cmd = f"module load {module} && scicat-cli datasetIngestor -token {token} {input}"
         check_result = subprocess.run(
             check_cmd, shell=True, executable="/bin/bash", capture_output=True, text=True
         )
@@ -221,7 +221,7 @@ def submit(input, module, token=None):
                 click.echo(f"   {load_result.stderr.strip()}")
 
         click.echo(f"Ingesting metadata from: {input}")
-        ingest_cmd = f"module load {module} && datasetIngestor -token {token} --ingest {input}"
+        ingest_cmd = f"module load {module} && scicat-cli datasetIngestor -token {token} --ingest {input}"
         ingest_result = subprocess.run(
             ingest_cmd, shell=True, executable="/bin/bash", capture_output=True, text=True
         )
